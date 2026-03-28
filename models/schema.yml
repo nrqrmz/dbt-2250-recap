@@ -5,14 +5,17 @@ sources:
     database: hip-beaker-406013
     schema: gz_raw_data
     loader: bigquery
-    freshness:
-      warn_after: {count: 12, period: hour}
-      error_after: {count: 24, period: hour}
+    # freshness:
+    #   warn_after: {count: 12, period: hour}
+    #   error_after: {count: 24, period: hour}
     tables:
       - name: sales
         identifier: raw_gz_sales
         description: sales of Greenweez / we have on row per product_id found in each orders_id
-        loaded_at_field: updated_at
+        loaded_at_field: "CAST(date_date AS TIMESTAMP)"
+        config: 
+          freshness:
+            warn_after: { count: 90, period: day }
         columns:
            - name: date_date
              description: date of purchase
@@ -24,12 +27,18 @@ sources:
              description: the amount paid by the customer to purchase the product.
            - name: quantity
              description: the quantity of products purchased for a given order
+        tests:
+          - unique:
+              column_name: "(orders_id || '-' || pdt_id)"
       - name: product
         identifier: raw_gz_product
         description: Greenweez products. Include price and id
         columns:
            - name: products_id
              description: Primary key
+             tests:
+               - unique
+               - not_null
            - name: purchase_price
              description: the purchase price of the product
       - name: ship
@@ -38,6 +47,9 @@ sources:
         columns:
            - name: orders_id
              description: Primary key
+             tests:
+               - unique
+               - not_null
            - name: shipping_fee
              description: the price the customer pays for shipping
            - name: log_cost
